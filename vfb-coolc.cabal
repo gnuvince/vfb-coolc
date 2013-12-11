@@ -16,7 +16,8 @@ cabal-version:       >=1.8
 
 executable vfb-coolc
   main-is: Main.hs
-  -- other-modules:
-  build-depends:       base ==4.5.*
+  other-modules:
+    Lexer
+  build-depends:       base ==4.5.*, array
   hs-source-dirs:      src
-  build-tools:         alex
+  build-tools:         alex, happy

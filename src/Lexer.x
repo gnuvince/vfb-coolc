@@ -1,6 +1,7 @@
 {
 module Lexer (
-              Token(..)
+               Token(..)
+             , alexScanTokens
              )
 where
 }
