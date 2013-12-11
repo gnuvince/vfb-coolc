@@ -1,5 +1,8 @@
 {
-module Main (main) where
+module Lexer (
+              Token(..)
+             )
+where
 }
 
 %wrapper "posn"
@@ -132,10 +135,4 @@ mkString pos s =
           escape [c]              = [c]
           escape ('\\':'\n':rest) = '\n':escape rest
           escape (c:cs)           = c:escape cs
-
-
-main :: IO ()
-main = do
-  src <- getContents
-  print (alexScanTokens src)
 }
