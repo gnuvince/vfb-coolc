@@ -1,79 +1,94 @@
 module Pretty where
 
-import Text.Printf (printf)
 import Data.List (intercalate)
+import Prelude hiding (unlines)
 
 import AST
+
+unlines :: [String] -> String
+unlines = intercalate "\n"
+
+indent :: Int -> [String] -> [String]
+indent ind lines = map (indentation++) lines
+    where indentation = replicate ind ' '
+
+ind4 :: [String] -> String
+ind4 = unlines . indent 4
 
 
 class Pretty p where
     pp :: p -> String
 
-instance Pretty Program where
-    pp program = unlines (map pp (programClasses program))
+instance Pretty (Program a) where
+    pp program = unlines [pp cl | cl <- programClasses program]
 
-instance Pretty Class where
-    pp cls = printf "class %s%s {\n%s\n}" clsName clsInherit clsFeatures
+instance Pretty (Class a) where
+    pp cls =
+        unlines ["class " ++ clsName ++ clsInherit ++ " {"
+                , unlines clsFeatures
+                , "}"
+                ]
         where clsName = className cls
               clsInherit = case classInheritedClass cls of
                              Nothing -> ""
                              Just c  -> " inherits " ++ c
-              clsFeatures = unlines (map pp (classFeatures cls))
+              clsFeatures = map pp (classFeatures cls)
 
-instance Pretty Feature where
+instance Pretty (Feature a) where
     pp (MethodDef name params ret expr _) =
-        printf "%s(%s): %s {\n%s\n}"
-               name
-               (intercalate ", " (map pp params))
-               ret
-               (pp expr)
+        ind4 [concat [name, "(", intercalate ", " (map pp params), "): ", ret, " {"]
+             , pp expr
+             , "}"]
+
+
 
     pp (VarDef name typ expr _) =
-        printf "%s: %s%s"
-               name
-               typ
-               (case expr of
-                  Nothing -> ""
-                  Just e -> " <- " ++ pp e)
+        ind4 [concat [name, ": ", typ, initExpr]]
+            where initExpr = case expr of
+                               Nothing -> ""
+                               Just e -> " <- " ++ pp e
 
-instance Pretty Param where
-    pp (Param name typ _) = name ++ ": " ++ typ
+instance Pretty (Param a) where
+    pp (Param name typ _) =
+        concat [name, ": ", typ]
 
-instance Pretty Expr where
-    pp (Assign name expr _) = printf "%s <- %s" name (pp expr)
+instance Pretty (Expr a) where
+    pp (Assign name expr _) = ind4 [concat [name, " <- ", pp expr]]
 
     pp (MethodCall recv targetCls method params _) =
-        printf "(%s)%s.%s(%s)"
-               (pp recv)
-               (case targetCls of
-                  Nothing -> ""
-                  Just c -> "@"++c)
-               method
-               (intercalate ", " (map pp params))
+        ind4 [concat ["(", pp recv, ")", targetClsStr, ".", method, intercalate "," (map pp params)]]
+            where targetClsStr = case targetCls of
+                                   Nothing -> ""
+                                   Just c -> "@"++c
 
     pp (FunCall fname params _) =
-        printf "%s(%s)"
-               fname
-               (intercalate ", " (map pp params))
+        ind4 [concat [fname, "(", intercalate ", " (map pp params), ")"]]
 
     pp (IfThenElse cond thenBranch elseBranch _) =
-        printf "if %s then %s else %s fi" (pp cond) (pp thenBranch) (pp elseBranch)
+        ind4 ["if " ++ pp cond ++  " then"
+             , ind4 [pp thenBranch]
+             , ind4 ["else"]
+             , ind4 [pp elseBranch]
+             , ind4 ["fi"]]
 
     pp (While expr body _) =
-        printf "while %s loop\n%s\npool" (pp expr) (pp body)
+        ind4 [unlines ["while " ++ pp expr ++ " loop"
+                      , pp body
+                      , "pool"]]
 
     pp (ExprList exprs _) =
-        printf "{\n%s}" (concat (map (\e -> pp e ++ ";\n") exprs))
+        ind4 [unlines ["{"
+                      , unlines (map pp exprs)
+                      , "}"]]
 
     pp (Let decls expr _) =
-        printf "let %s in %s"
-               (intercalate ", " (map pp decls))
-               (pp expr)
+        ind4 [unlines ["let " ++ intercalate ", " (map pp decls) ++ " in"
+                      , pp expr]]
+
 
     pp (Case expr branches _) =
-        printf "case %s of\n%s\nesac"
-               (pp expr)
-               (intercalate "\n" (map pp branches))
+        ind4 [unlines ["case " ++ pp expr ++ " of"
+                      , unlines (map pp branches)]]
 
     pp (New typ _)     = "new " ++ typ
     pp (IsVoid expr _) = "isvoid " ++ pp expr
@@ -95,16 +110,15 @@ instance Pretty Expr where
     pp (CFalse _)      = "false"
 
 
-instance Pretty Decl where
+instance Pretty (Decl a) where
     pp (Decl name typ expr _) =
-        printf "%s: %s%s;"
-               name
-               typ
-               (case expr of
-                  Nothing -> ""
-                  Just e -> " <- " ++ pp e)
+        ind4 [concat [name, ": ", typ, initExpr]]
+            where initExpr = case expr of
+                               Nothing -> ""
+                               Just e -> " <- " ++ pp e
 
 
 
-instance Pretty CaseBranch where
-    pp cb = printf "%s: %s => %s" (branchName cb) (branchType cb) (pp (branchExpr cb))
+instance Pretty (CaseBranch a) where
+    pp cb =
+        ind4 [concat [branchName cb, ": ", branchType cb, " => ", pp (branchExpr cb)]]

@@ -3,6 +3,8 @@ module Main where
 import qualified Data.ByteString.Lazy.Char8 as B
 
 import Lexer
+import AST
+import Pretty
 
 main :: IO ()
 main = do
