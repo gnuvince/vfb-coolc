@@ -21,14 +21,14 @@ instance Pretty Class where
               clsFeatures = unlines (map pp (classFeatures cls))
 
 instance Pretty Feature where
-    pp (MethodDef name params ret expr) =
+    pp (MethodDef name params ret expr _) =
         printf "%s(%s): %s {\n%s\n}"
                name
                (intercalate ", " (map pp params))
                ret
                (pp expr)
 
-    pp (VarDef name typ expr) =
+    pp (VarDef name typ expr _) =
         printf "%s: %s%s"
                name
                typ
@@ -37,12 +37,12 @@ instance Pretty Feature where
                   Just e -> " <- " ++ pp e)
 
 instance Pretty Param where
-    pp (Param name typ) = name ++ ": " ++ typ
+    pp (Param name typ _) = name ++ ": " ++ typ
 
 instance Pretty Expr where
-    pp (Assign name expr) = printf "%s <- %s" name (pp expr)
+    pp (Assign name expr _) = printf "%s <- %s" name (pp expr)
 
-    pp (MethodCall recv targetCls method params) =
+    pp (MethodCall recv targetCls method params _) =
         printf "(%s)%s.%s(%s)"
                (pp recv)
                (case targetCls of
@@ -51,52 +51,52 @@ instance Pretty Expr where
                method
                (intercalate ", " (map pp params))
 
-    pp (FunCall fname params) =
+    pp (FunCall fname params _) =
         printf "%s(%s)"
                fname
                (intercalate ", " (map pp params))
 
-    pp (IfThenElse cond then_ else_) =
-        printf "if %s then %s else %s fi" (pp cond) (pp then_) (pp else_)
+    pp (IfThenElse cond thenBranch elseBranch _) =
+        printf "if %s then %s else %s fi" (pp cond) (pp thenBranch) (pp elseBranch)
 
-    pp (While expr body) =
+    pp (While expr body _) =
         printf "while %s loop\n%s\npool" (pp expr) (pp body)
 
-    pp (ExprList exprs) =
+    pp (ExprList exprs _) =
         printf "{\n%s}" (concat (map (\e -> pp e ++ ";\n") exprs))
 
-    pp (Let decls expr) =
+    pp (Let decls expr _) =
         printf "let %s in %s"
                (intercalate ", " (map pp decls))
                (pp expr)
 
-    pp (Case expr branches) =
+    pp (Case expr branches _) =
         printf "case %s of\n%s\nesac"
                (pp expr)
                (intercalate "\n" (map pp branches))
 
-    pp (New typ) = "new " ++ typ
-    pp (IsVoid expr) = "isvoid " ++ pp expr
-    pp (Add x y) = "(" ++ pp x ++ "+" ++ pp y ++ ")"
-    pp (Sub x y) = "(" ++ pp x ++ "-" ++ pp y ++ ")"
-    pp (Mul x y) = "(" ++ pp x ++ "*" ++ pp y ++ ")"
-    pp (Div x y) = "(" ++ pp x ++ "/" ++ pp y ++ ")"
-    pp (Neg x)   = "~(" ++ pp x ++ ")"
-    pp (Lt x y) = "(" ++ pp x ++ "<" ++ pp y ++ ")"
-    pp (Le x y) = "(" ++ pp x ++ "<=" ++ pp y ++ ")"
-    pp (Gt x y) = "(" ++ pp x ++ ">" ++ pp y ++ ")"
-    pp (Ge x y) = "(" ++ pp x ++ ">=" ++ pp y ++ ")"
-    pp (Eq x y) = "(" ++ pp x ++ "=" ++ pp y ++ ")"
-    pp (Not x)  = "not (" ++ pp x ++ ")"
-    pp (Id x) = x
-    pp (Int x) = show x
-    pp (Str x) = show x
-    pp CTrue = "true"
-    pp CFalse = "false"
+    pp (New typ _)     = "new " ++ typ
+    pp (IsVoid expr _) = "isvoid " ++ pp expr
+    pp (Add x y _)     = "(" ++ pp x ++ "+" ++ pp y ++ ")"
+    pp (Sub x y _)     = "(" ++ pp x ++ "-" ++ pp y ++ ")"
+    pp (Mul x y _)     = "(" ++ pp x ++ "*" ++ pp y ++ ")"
+    pp (Div x y _)     = "(" ++ pp x ++ "/" ++ pp y ++ ")"
+    pp (Neg x _)       = "~(" ++ pp x ++ ")"
+    pp (Lt x y _)      = "(" ++ pp x ++ "<" ++ pp y ++ ")"
+    pp (Le x y _)      = "(" ++ pp x ++ "<=" ++ pp y ++ ")"
+    pp (Gt x y _)      = "(" ++ pp x ++ ">" ++ pp y ++ ")"
+    pp (Ge x y _)      = "(" ++ pp x ++ ">=" ++ pp y ++ ")"
+    pp (Eq x y _)      = "(" ++ pp x ++ "=" ++ pp y ++ ")"
+    pp (Not x _)       = "not (" ++ pp x ++ ")"
+    pp (Id x _)        = x
+    pp (Int x _)       = show x
+    pp (Str x _)       = show x
+    pp (CTrue _)       = "true"
+    pp (CFalse _)      = "false"
 
 
 instance Pretty Decl where
-    pp (Decl name typ expr) =
+    pp (Decl name typ expr _) =
         printf "%s: %s%s;"
                name
                typ

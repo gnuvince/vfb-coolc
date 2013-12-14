@@ -4,9 +4,11 @@ module Lexer (
              , alexScanTokens
              )
 where
+
+import qualified Data.ByteString.Lazy.Char8 as B
 }
 
-%wrapper "posn"
+%wrapper "posn-bytestring"
 
 
 $digit = 0-9
@@ -17,8 +19,8 @@ $upper = A-Z
 $white = [\ \t\r\n\v\f]
 
 @integer = 0 | \-?[1-9][0-9]*
-@typeid = $upper $alphanum+
-@objid  = $lower $alphanum+
+@typeid = $upper $alphanum*
+@objid  = $lower $alphanum*
 --@chars = [^ \" \0 \\] | \\[^ \0] | \\\n
 @chars = [^\"] | \\\n
 
@@ -51,8 +53,11 @@ while    { \pos _ -> TWhile pos }
 
 
 -- Literals
-@integer        { \pos s -> TInt pos (read s) }
+@integer        { \pos s -> TInt pos (read $ B.unpack s) }
 \" @chars* \"   { \pos s -> mkString pos s }
+
+@typeid  { \pos s -> TTypeId pos s }
+@objid   { \pos s -> TObjId pos s }
 
 -- Symbols
 ":"  { \pos _ -> TColon pos }
@@ -76,16 +81,13 @@ while    { \pos _ -> TWhile pos }
 "("  { \pos _ -> TLParen pos }
 ")"  { \pos _ -> TRParen pos }
 
-@typeid  { \pos s -> TTypeId pos s }
-@objid   { \pos s -> TObjId pos s }
-
 
 
 {
 data Token = TInt AlexPosn Int
-           | TString AlexPosn String
-           | TTypeId AlexPosn String
-           | TObjId AlexPosn String
+           | TString AlexPosn B.ByteString
+           | TTypeId AlexPosn B.ByteString
+           | TObjId AlexPosn B.ByteString
            | TClass AlexPosn
            | TElse AlexPosn
            | TFalse AlexPosn
@@ -128,12 +130,8 @@ data Token = TInt AlexPosn Int
            deriving (Show, Eq)
 
 
-mkString :: AlexPosn -> String -> Token
+mkString :: AlexPosn -> B.ByteString -> Token
 mkString pos s =
-    let s' = init (tail s) in
-    TString pos (escape s')
-    where escape ""               = ""
-          escape [c]              = [c]
-          escape ('\\':'\n':rest) = '\n':escape rest
-          escape (c:cs)           = c:escape cs
+    let s' = B.init (B.tail s) in
+    TString pos s'
 }

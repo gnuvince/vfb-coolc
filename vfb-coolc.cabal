@@ -18,6 +18,6 @@ executable vfb-coolc
   main-is: Main.hs
   other-modules:
     Lexer
-  build-depends:       base ==4.5.*, array
+  build-depends:       base ==4.5.*, array, bytestring
   hs-source-dirs:      src
   build-tools:         alex, happy
