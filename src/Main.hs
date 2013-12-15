@@ -3,6 +3,7 @@ module Main where
 import qualified Data.ByteString.Lazy.Char8 as B
 
 import Lexer
+import Parser
 import AST
 import Pretty
 

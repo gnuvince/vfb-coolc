@@ -110,3 +110,54 @@ data CaseBranch a = CaseBranch {
     , branchExpr :: Expr a
     , branchAttr :: a
     } deriving (Show)
+
+
+class Attributable n where
+    astAttr :: n a -> a
+
+instance Attributable Program where
+    astAttr = programAttr
+
+instance Attributable Class where
+    astAttr = classAttr
+
+instance Attributable Feature where
+    astAttr (MethodDef {methodAttr=a}) = a
+    astAttr (VarDef {varAttr=a})       = a
+
+instance Attributable Param where
+    astAttr = paramAttr
+
+instance Attributable Expr where
+    astAttr (Assign {assignAttr=a})    = a
+    astAttr (MethodCall {mcallAttr=a}) = a
+    astAttr (FunCall {fcallAttr=a})    = a
+    astAttr (IfThenElse {ifAttr=a})    = a
+    astAttr (While {whileAttr=a})      = a
+    astAttr (ExprList {listAttr=a})    = a
+    astAttr (Let {letAttr=a})          = a
+    astAttr (Case {caseAttr=a})        = a
+    astAttr (New {newAttr=a})          = a
+    astAttr (IsVoid {isVoidAttr=a})    = a
+    astAttr (Add {addAttr=a})          = a
+    astAttr (Sub {subAttr=a})          = a
+    astAttr (Mul {mulAttr=a})          = a
+    astAttr (Div {divAttr=a})          = a
+    astAttr (Neg {negAttr=a})          = a
+    astAttr (Lt  {ltAttr=a})           = a
+    astAttr (Le  {leAttr=a})           = a
+    astAttr (Eq  {eqAttr=a})           = a
+    astAttr (Ge  {geAttr=a})           = a
+    astAttr (Gt  {gtAttr=a})           = a
+    astAttr (Not {notAttr=a})          = a
+    astAttr (Id {idAttr=a})            = a
+    astAttr (Int {intAttr=a})          = a
+    astAttr (Str {strAttr=a})          = a
+    astAttr (CTrue {ctrueAttr=a})      = a
+    astAttr (CFalse {cfalseAttr=a})    = a
+
+instance Attributable Decl where
+    astAttr = declAttr
+
+instance Attributable CaseBranch where
+    astAttr = branchAttr

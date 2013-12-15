@@ -1,6 +1,8 @@
 {
 module Lexer (
                Token(..)
+             , TokenClass(..)
+             , tkPos
              , alexScanTokens
              )
 where
@@ -18,7 +20,7 @@ $lower = [a-z_]
 $upper = A-Z
 $white = [\ \t\r\n\v\f]
 
-@integer = 0 | \-?[1-9][0-9]*
+@integer = 0 | [1-9][0-9]*
 @typeid = $upper $alphanum*
 @objid  = $lower $alphanum*
 --@chars = [^ \" \0 \\] | \\[^ \0] | \\\n
@@ -31,107 +33,122 @@ $white+ ;
 "(*" .* "*)" ;
 
 -- Keywords
-case     { \pos _ -> TCase pos }
-class    { \pos _ -> TClass pos }
-else     { \pos _ -> TElse pos }
-esac     { \pos _ -> TEsac pos }
-false    { \pos _ -> TFalse pos }
-fi       { \pos _ -> TFi pos }
-if       { \pos _ -> TIf pos }
-in       { \pos _ -> TIn pos }
-inherits { \pos _ -> TInherits pos }
-isvoid   { \pos _ -> TIsvoid pos }
-let      { \pos _ -> TLet pos }
-loop     { \pos _ -> TLoop pos }
-new      { \pos _ -> TNew pos }
-not      { \pos _ -> TNot pos }
-of       { \pos _ -> TOf pos }
-pool     { \pos _ -> TPool pos }
-then     { \pos _ -> TThen pos }
-true     { \pos _ -> TTrue pos }
-while    { \pos _ -> TWhile pos }
+case     { mkTk TCase }
+class    { mkTk TClass }
+else     { mkTk TElse }
+esac     { mkTk TEsac }
+false    { mkTk TFalse }
+fi       { mkTk TFi }
+if       { mkTk TIf }
+in       { mkTk TIn }
+inherits { mkTk TInherits }
+isvoid   { mkTk TIsvoid }
+let      { mkTk TLet }
+loop     { mkTk TLoop }
+new      { mkTk TNew }
+not      { mkTk TNot }
+of       { mkTk TOf }
+pool     { mkTk TPool }
+then     { mkTk TThen }
+true     { mkTk TTrue }
+while    { mkTk TWhile }
 
 
 -- Literals
-@integer        { \pos s -> TInt pos (read $ B.unpack s) }
+@integer        { \pos s -> mkTk (TInt (read $ B.unpack s)) pos s }
 \" @chars* \"   { \pos s -> mkString pos s }
 
-@typeid  { \pos s -> TTypeId pos s }
-@objid   { \pos s -> TObjId pos s }
+@typeid  { \pos s -> mkTk (TTypeId s) pos s }
+@objid   { \pos s -> mkTk (TObjId s) pos s }
 
 -- Symbols
-":"  { \pos _ -> TColon pos }
-";"  { \pos _ -> TSemiColon pos }
-"@"  { \pos _ -> TAt pos }
-"."  { \pos _ -> TDot pos }
-","  { \pos _ -> TComma pos }
-"<-" { \pos _ -> TArrow pos }
-"+"  { \pos _ -> TPlus pos }
-"-"  { \pos _ -> TMinus pos }
-"*"  { \pos _ -> TStar pos }
-"/"  { \pos _ -> TSlash pos }
-"~"  { \pos _ -> TTilde pos }
-"<"  { \pos _ -> TLt pos }
-"<=" { \pos _ -> TLe pos }
-">"  { \pos _ -> TGt pos }
-">=" { \pos _ -> TGe pos }
-"="  { \pos _ -> TEq pos }
-"{"  { \pos _ -> TLBrace pos }
-"}"  { \pos _ -> TRBrace pos }
-"("  { \pos _ -> TLParen pos }
-")"  { \pos _ -> TRParen pos }
+":"  { mkTk TColon }
+";"  { mkTk TSemiColon }
+"@"  { mkTk TAt }
+"."  { mkTk TDot }
+","  { mkTk TComma }
+"<-" { mkTk TAssign }
+"=>" { mkTk TFatArrow }
+"+"  { mkTk TPlus }
+"-"  { mkTk TMinus }
+"*"  { mkTk TStar }
+"/"  { mkTk TSlash }
+"~"  { mkTk TTilde }
+"<"  { mkTk TLt }
+"<=" { mkTk TLe }
+">"  { mkTk TGt }
+">=" { mkTk TGe }
+"="  { mkTk TEq }
+"{"  { mkTk TLBrace }
+"}"  { mkTk TRBrace }
+"("  { mkTk TLParen }
+")"  { mkTk TRParen }
 
 
 
 {
-data Token = TInt AlexPosn Int
-           | TString AlexPosn B.ByteString
-           | TTypeId AlexPosn B.ByteString
-           | TObjId AlexPosn B.ByteString
-           | TClass AlexPosn
-           | TElse AlexPosn
-           | TFalse AlexPosn
-           | TFi AlexPosn
-           | TIf AlexPosn
-           | TIn AlexPosn
-           | TInherits AlexPosn
-           | TIsvoid AlexPosn
-           | TLet AlexPosn
-           | TLoop AlexPosn
-           | TPool AlexPosn
-           | TThen AlexPosn
-           | TWhile AlexPosn
-           | TCase AlexPosn
-           | TEsac AlexPosn
-           | TNew AlexPosn
-           | TOf AlexPosn
-           | TNot AlexPosn
-           | TTrue AlexPosn
-           | TColon AlexPosn
-           | TSemiColon AlexPosn
-           | TAt AlexPosn
-           | TDot AlexPosn
-           | TComma AlexPosn
-           | TArrow AlexPosn
-           | TPlus AlexPosn
-           | TMinus AlexPosn
-           | TStar AlexPosn
-           | TSlash AlexPosn
-           | TTilde AlexPosn
-           | TLt AlexPosn
-           | TLe AlexPosn
-           | TGt AlexPosn
-           | TGe AlexPosn
-           | TEq AlexPosn
-           | TLBrace AlexPosn
-           | TRBrace AlexPosn
-           | TLParen AlexPosn
-           | TRParen AlexPosn
+mkTk :: TokenClass -> AlexPosn -> B.ByteString -> Token
+mkTk cls pos _ = MkToken pos cls
+
+tkPos :: Token -> AlexPosn
+tkPos (MkToken p _) = p
+
+data Token = MkToken AlexPosn TokenClass
+    deriving (Eq)
+
+instance Show Token where
+    show (MkToken (AlexPn _ l c) cl) =
+        concat ["<", show cl, " ", show (l, c), ">"]
+
+data TokenClass = TInt Int
+                | TString B.ByteString
+                | TTypeId B.ByteString
+                | TObjId B.ByteString
+                | TClass
+                | TElse
+                | TFalse
+                | TFi
+                | TIf
+                | TIn
+                | TInherits
+                | TIsvoid
+                | TLet
+                | TLoop
+                | TPool
+                | TThen
+                | TWhile
+                | TCase
+                | TEsac
+                | TNew
+                | TOf
+                | TNot
+                | TTrue
+                | TColon
+                | TSemiColon
+                | TAt
+                | TDot
+                | TComma
+                | TAssign
+                | TFatArrow
+                | TPlus
+                | TMinus
+                | TStar
+                | TSlash
+                | TTilde
+                | TLt
+                | TLe
+                | TGt
+                | TGe
+                | TEq
+                | TLBrace
+                | TRBrace
+                | TLParen
+                | TRParen
            deriving (Show, Eq)
 
 
 mkString :: AlexPosn -> B.ByteString -> Token
 mkString pos s =
     let s' = B.init (B.tail s) in
-    TString pos s'
+    mkTk (TString s') pos s'
 }
