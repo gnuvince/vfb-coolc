@@ -12,4 +12,4 @@ main = do
   src <- B.getContents
   let tokens = alexScanTokens src
   let ast = parseCool tokens
-  print ast
+  print (pretty ast)

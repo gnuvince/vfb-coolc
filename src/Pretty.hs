@@ -1,129 +1,119 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Pretty where
 
-{-
-import qualified Data.ByteString.Lazy.Char8 as B
-
-import Data.List (intercalate)
 import Prelude hiding (unlines)
+import qualified Text.PrettyPrint as P
+import qualified Data.ByteString.Lazy.Char8 as B
 
 
 import AST
 
-unlines :: [String] -> String
-unlines = intercalate "\n"
-
-indent :: Int -> [String] -> [String]
-indent ind lines = map (indentation++) lines
-    where indentation = replicate ind ' '
-
-ind4 :: [String] -> String
-ind4 = unlines . indent 4
-
+indent :: Int
+indent = 4
 
 class Pretty p where
-    pp :: p -> String
+    pretty :: p -> P.Doc
 
-instance Pretty (Program a) where
-    pp program = unlines [pp cl | cl <- programClasses program]
+binOp :: String -> Expr a -> Expr a -> P.Doc
+binOp op left right =
+    P.parens (pretty left P.<+> P.text op P.<+> pretty right)
 
-instance Pretty (Class a) where
-    pp cls =
-        unlines ["class " ++ clsName ++ clsInherit ++ " {"
-                , unlines clsFeatures
-                , "}"
-                ]
-        where clsName = className cls
-              clsInherit = case classInheritedClass cls of
-                             Nothing -> ""
-                             Just c  -> " inherits " ++ c
-              clsFeatures = map pp (classFeatures cls)
-
-instance Pretty (Feature a) where
-    pp (MethodDef name params ret expr _) =
-        ind4 [concat [name, "(", intercalate ", " (map pp params), "): ", ret, " {"]
-             , pp expr
-             , "}"]
-
-
-
-    pp (VarDef name typ expr _) =
-        ind4 [concat [name, ": ", typ, initExpr]]
-            where initExpr = case expr of
-                               Nothing -> ""
-                               Just e -> " <- " ++ pp e
-
-instance Pretty (Param a) where
-    pp (Param name typ _) =
-        concat [name, ": ", typ]
+bytestr :: B.ByteString -> P.Doc
+bytestr = P.text . B.unpack
 
 instance Pretty (Expr a) where
-    pp (Assign name expr _) = ind4 [concat [name, " <- ", pp expr]]
+    pretty (Assign x expr _) = bytestr x P.<+> "<-" P.<+> pretty expr
+    pretty (MethodCall recv Nothing method params _) =
+        P.cat [pretty recv, P.char '.', bytestr method,
+               P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
+    pretty (MethodCall recv (Just ty) method params _) =
+        P.cat [pretty recv, P.char '@', bytestr ty,
+               P.char '.', bytestr method,
+               P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
+    pretty (FunCall fun params _) =
+        P.cat [bytestr fun,
+               P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
+    pretty (IfThenElse expr thenBranch elseBranch _) =
+        P.vcat [P.hsep [P.text "if", pretty expr, P.text "then"],
+                P.nest indent (pretty thenBranch),
+                P.text "else",
+                P.nest indent (pretty elseBranch),
+                P.text "fi"]
+    pretty (While expr body _) =
+        P.vcat [P.hsep [P.text "while", pretty expr, P.text "loop"],
+                P.nest indent (pretty body),
+                P.text "pool"]
+    pretty (ExprList exprs _) =
+        P.vcat [P.text "{",
+                P.nest indent (P.vcat [pretty e P.<> P.char ';' | e <- exprs]),
+                P.text "}"]
+    pretty (Let decls expr _) =
+        P.vcat [P.text "let",
+                P.nest indent (P.vcat [pretty d P.<> P.char ';' | d <- decls]),
+                P.text "in",
+                P.nest indent (pretty expr)]
+    pretty (Case expr branches _) =
+        P.vcat [P.hsep [P.text "case", pretty expr, P.text "of"],
+                P.nest indent (P.vcat [pretty b P.<> P.char ';' | b <- branches]),
+                P.text "esac"]
+    pretty (New ty _)  = P.text "new" P.<+> bytestr ty
+    pretty (IsVoid expr _)  = P.text "isvoid" P.<+> P.parens (pretty expr)
+    pretty (Add l r _) = binOp "+" l r
+    pretty (Sub l r _) = binOp "-" l r
+    pretty (Mul l r _) = binOp "*" l r
+    pretty (Div l r _) = binOp "/" l r
+    pretty (Lt l r _)  = binOp "<" l r
+    pretty (Le l r _)  = binOp "<=" l r
+    pretty (Eq l r _)  = binOp "=" l r
+    pretty (Ge l r _)  = binOp ">=" l r
+    pretty (Gt l r _)  = binOp ">" l r
+    pretty (Neg e _)   = P.text "~" P.<> P.parens (pretty e)
+    pretty (Not e _)   = P.text "not" P.<+> P.parens (pretty e)
+    pretty (Id s _)    = bytestr s
+    pretty (Int n _)   = P.int n
+    pretty (Str s _)   = P.doubleQuotes (bytestr s)
+    pretty (CTrue _)   = P.text "true"
+    pretty (CFalse _)  = P.text "false"
 
-    pp (MethodCall recv targetCls method params _) =
-        ind4 [concat ["(", pp recv, ")", targetClsStr, ".", method, intercalate "," (map pp params)]]
-            where targetClsStr = case targetCls of
-                                   Nothing -> ""
-                                   Just c -> "@"++c
+instance Pretty (Program a) where
+    pretty (Program classes _) =
+        P.vcat [pretty c P.<> P.char ';' | c <- classes]
 
-    pp (FunCall fname params _) =
-        ind4 [concat [fname, "(", intercalate ", " (map pp params), ")"]]
+instance Pretty (Class a) where
+    pretty (Class clsName inhCls features _) =
+        P.vcat [P.hcat [P.text "class ", bytestr clsName, inherits, P.text " {"],
+                P.nest indent (P.vcat [pretty f P.<> P.char ';' | f <- features]),
+                P.char '}']
+            where inherits = case inhCls of
+                               Nothing -> P.empty
+                               Just c  -> P.text " inherits" P.<+> bytestr c
 
-    pp (IfThenElse cond thenBranch elseBranch _) =
-        ind4 ["if " ++ pp cond ++  " then"
-             , ind4 [pp thenBranch]
-             , ind4 ["else"]
-             , ind4 [pp elseBranch]
-             , ind4 ["fi"]]
+instance Pretty (Param a) where
+    pretty (Param name typ _) =
+        P.hcat [bytestr name, P.text ": ", bytestr typ]
 
-    pp (While expr body _) =
-        ind4 [unlines ["while " ++ pp expr ++ " loop"
-                      , pp body
-                      , "pool"]]
+instance Pretty (Feature a) where
+    pretty (VarDef name typ expr _) =
+        P.hcat [bytestr name, P.char ':', bytestr typ, init]
+         where init = case expr of
+                        Nothing -> P.empty
+                        Just e  -> P.text "<-" P.<+> pretty e
 
-    pp (ExprList exprs _) =
-        ind4 [unlines ["{"
-                      , unlines (map pp exprs)
-                      , "}"]]
-
-    pp (Let decls expr _) =
-        ind4 [unlines ["let " ++ intercalate ", " (map pp decls) ++ " in"
-                      , pp expr]]
-
-
-    pp (Case expr branches _) =
-        ind4 [unlines ["case " ++ pp expr ++ " of"
-                      , unlines (map pp branches)]]
-
-    pp (New typ _)     = "new " ++ typ
-    pp (IsVoid expr _) = "isvoid " ++ pp expr
-    pp (Add x y _)     = "(" ++ pp x ++ "+" ++ pp y ++ ")"
-    pp (Sub x y _)     = "(" ++ pp x ++ "-" ++ pp y ++ ")"
-    pp (Mul x y _)     = "(" ++ pp x ++ "*" ++ pp y ++ ")"
-    pp (Div x y _)     = "(" ++ pp x ++ "/" ++ pp y ++ ")"
-    pp (Neg x _)       = "~(" ++ pp x ++ ")"
-    pp (Lt x y _)      = "(" ++ pp x ++ "<" ++ pp y ++ ")"
-    pp (Le x y _)      = "(" ++ pp x ++ "<=" ++ pp y ++ ")"
-    pp (Gt x y _)      = "(" ++ pp x ++ ">" ++ pp y ++ ")"
-    pp (Ge x y _)      = "(" ++ pp x ++ ">=" ++ pp y ++ ")"
-    pp (Eq x y _)      = "(" ++ pp x ++ "=" ++ pp y ++ ")"
-    pp (Not x _)       = "not (" ++ pp x ++ ")"
-    pp (Id x _)        = x
-    pp (Int x _)       = show x
-    pp (Str x _)       = show x
-    pp (CTrue _)       = "true"
-    pp (CFalse _)      = "false"
-
+    pretty (MethodDef name params typ expr _) =
+        P.vcat [P.cat [bytestr name, P.char '(',
+                       P.cat (P.punctuate (P.text ", ") [pretty p | p <- params]),
+                       P.text "): ", bytestr typ, P.text " {"],
+                P.nest indent (pretty expr),
+                P.char '}']
 
 instance Pretty (Decl a) where
-    pp (Decl name typ expr _) =
-        ind4 [concat [name, ": ", typ, initExpr]]
-            where initExpr = case expr of
-                               Nothing -> ""
-                               Just e -> " <- " ++ pp e
-
-
+    pretty (Decl name typ expr _) =
+        P.hcat [bytestr name, P.text ": ", bytestr typ, init]
+         where init = case expr of
+                        Nothing -> P.empty
+                        Just e  -> P.text " <- " P.<> pretty e
 
 instance Pretty (CaseBranch a) where
-    pp cb =
-        ind4 [concat [branchName cb, ": ", branchType cb, " => ", pp (branchExpr cb)]]
--}
+    pretty (CaseBranch name typ expr _) =
+        P.hcat [bytestr name, P.text ": ", bytestr typ, P.text " => ", pretty expr]

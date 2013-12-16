@@ -93,7 +93,7 @@ data Expr a = Assign { assignName :: Id
             | Not { notExpr :: Expr a, notAttr :: a }
             | Id { idName :: Id, idAttr :: a }
             | Int { intValue :: Int, intAttr :: a }
-            | Str { strValue :: Id, strAttr :: a }
+            | Str { strValue :: B.ByteString, strAttr :: a }
             | CTrue { ctrueAttr :: a }
             | CFalse { cfalseAttr :: a }
               deriving (Show)
