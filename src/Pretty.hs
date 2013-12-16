@@ -1,7 +1,10 @@
 module Pretty where
+{-
+import qualified Data.ByteString.Lazy.Char8 as B
 
 import Data.List (intercalate)
 import Prelude hiding (unlines)
+
 
 import AST
 
@@ -122,3 +125,4 @@ instance Pretty (Decl a) where
 instance Pretty (CaseBranch a) where
     pp cb =
         ind4 [concat [branchName cb, ": ", branchType cb, " => ", pp (branchExpr cb)]]
+-}

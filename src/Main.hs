@@ -10,4 +10,6 @@ import Pretty
 main :: IO ()
 main = do
   src <- B.getContents
-  print (alexScanTokens src)
+  let tokens = alexScanTokens src
+  let ast = parseCool tokens
+  print ast

@@ -1,5 +1,7 @@
 module AST where
 
+import qualified Data.ByteString.Lazy.Char8 as B
+
 {-
   Abstract syntax tree structure for our language.  Every type has a
   type parameter @a@ that (I hope) will contain extra attributes such as
@@ -7,7 +9,8 @@ module AST where
 -}
 
 -- Should this be a distinct type?
-type Type = String
+type Id   = B.ByteString
+type Type = B.ByteString
 
 data Program a = Program {
       programClasses :: [Class a]
@@ -21,13 +24,13 @@ data Class a = Class {
     , classAttr :: a
     } deriving (Show)
 
-data Feature a  = MethodDef { methodName :: String
+data Feature a  = MethodDef { methodName :: Id
                             , methodParams :: [Param a]
                             , methodType :: Type
                             , methodExpr :: Expr a
                             , methodAttr :: a
                             }
-                | VarDef { varName :: String
+                | VarDef { varName :: Id
                          , varType :: Type
                          , varExpr :: Maybe (Expr a)
                          , varAttr :: a
@@ -35,22 +38,22 @@ data Feature a  = MethodDef { methodName :: String
                  deriving (Show)
 
 data Param a = Param {
-      paramName :: String
+      paramName :: Id
     , paramType :: Type
     , paramAttr :: a
     } deriving (Show)
 
-data Expr a = Assign { assignName :: String
+data Expr a = Assign { assignName :: Id
                      , assignExpr :: Expr a
                      , assignAttr :: a
                      }
             | MethodCall { mcallExpr :: Expr a
                          , mcallClass :: Maybe Type
-                         , mcallName :: String
+                         , mcallName :: Id
                          , mcallParams :: [Expr a]
                          , mcallAttr :: a
                          }
-            | FunCall { fcallName :: String
+            | FunCall { fcallName :: Id
                       , fcallParams :: [Expr a]
                       , fcallAttr :: a
                       }
@@ -88,9 +91,9 @@ data Expr a = Assign { assignName :: String
             | Ge  { geLeft :: Expr a, geRight :: Expr a, geAttr :: a }
             | Gt  { gtLeft :: Expr a, gtRight :: Expr a, gtAttr :: a }
             | Not { notExpr :: Expr a, notAttr :: a }
-            | Id { idName :: String, idAttr :: a }
+            | Id { idName :: Id, idAttr :: a }
             | Int { intValue :: Int, intAttr :: a }
-            | Str { strValue :: String, strAttr :: a }
+            | Str { strValue :: Id, strAttr :: a }
             | CTrue { ctrueAttr :: a }
             | CFalse { cfalseAttr :: a }
               deriving (Show)
@@ -98,14 +101,14 @@ data Expr a = Assign { assignName :: String
 
 
 data Decl a = Decl {
-      declName :: String
+      declName :: Id
     , declType :: Type
     , declExpr :: Maybe (Expr a)
     , declAttr :: a
     } deriving (Show)
 
 data CaseBranch a = CaseBranch {
-      branchName :: String
+      branchName :: Id
     , branchType :: Type
     , branchExpr :: Expr a
     , branchAttr :: a
