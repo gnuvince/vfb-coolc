@@ -103,9 +103,12 @@ instance Pretty (Feature a) where
     pretty (MethodDef name params typ expr _) =
         P.vcat [P.cat [bytestr name, P.char '(',
                        P.cat (P.punctuate (P.text ", ") [pretty p | p <- params]),
-                       P.text "): ", bytestr typ, P.text " {"],
+                       P.char ')', retType, P.text " {"],
                 P.nest indent (pretty expr),
                 P.char '}']
+            where retType = case typ of
+                              Nothing -> P.empty
+                              Just t  -> P.char ':' P.<+> bytestr t
 
 instance Pretty (Decl a) where
     pretty (Decl name typ expr _) =

@@ -26,7 +26,7 @@ data Class a = Class {
 
 data Feature a  = MethodDef { methodName :: Id
                             , methodParams :: [Param a]
-                            , methodType :: Type
+                            , methodType :: Maybe Type
                             , methodExpr :: Expr a
                             , methodAttr :: a
                             }
