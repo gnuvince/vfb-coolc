@@ -1,0 +1,10 @@
+* TODO
+** General
+- Unit tests
+- Sample COOL programs
+** Lexer
+- Implement case-insensitive keywords
+- Better string handling
+- Nested comments (monadUserState_bytestring?)
+** Pretty Printer
+- Use a library like Text.PrettyPrint

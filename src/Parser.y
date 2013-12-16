@@ -56,6 +56,16 @@ import AST
     'id'       { MkToken _ (TObjId _) }
 
 
+%right    '<-'
+%left     'not'
+%nonassoc '<' '<=' '=' '>' '>='
+%left     '+' '-'
+%left     '*' '/'
+%left     'isvoid'
+%left     '~'
+%left     '@'
+%left     '.'
+
 %%
 
 program : classes                                       { Program $1 (astAttr (head $1)) }
@@ -91,10 +101,39 @@ expr : 'id' '<-' expr                                   { Assign (tkId $1) $3 (t
      | expr '@' 'type' '.' 'id' '(' exprCommaStar ')'   { MethodCall $1 (Just (tkType $3)) (tkId $5) $7 (astAttr $1) }
      | 'if' expr 'then' expr 'else' expr 'fi'           { IfThenElse $2 $4 $6 (tkPos $1) }
      | 'while' expr 'loop' expr 'pool'                  { While $2 $4 (tkPos $1) }
+     | 'let' letDecls 'in' expr                         { Let $2 $4 (tkPos $1) }
+     | 'case' expr 'of' caseBranches 'esac'             { Case $2 $4 (tkPos $1) }
      | '{' exprSemiPlus '}'                             { ExprList $2 (tkPos $1) }
+     | 'new' 'type'                                     { New (tkType $2) (tkPos $1) }
+     | 'isvoid' expr                                    { IsVoid $2 (tkPos $1) }
+     | expr '+' expr                                    { Add $1 $3 (astAttr $1) }
+     | expr '-' expr                                    { Sub $1 $3 (astAttr $1) }
+     | expr '*' expr                                    { Mul $1 $3 (astAttr $1) }
+     | expr '/' expr                                    { Div $1 $3 (astAttr $1) }
+     | '~' expr                                         { Neg $2 (tkPos $1) }
+     | expr '<'  expr                                   { Lt $1 $3 (astAttr $1) }
+     | expr '<=' expr                                   { Le $1 $3 (astAttr $1) }
+     | expr '='  expr                                   { Eq $1 $3 (astAttr $1) }
+     | expr '>'  expr                                   { Gt $1 $3 (astAttr $1) }
+     | expr '>=' expr                                   { Ge $1 $3 (astAttr $1) }
+     | 'not' expr                                       { Not $2 (tkPos $1) }
+     | 'id'                                             { Id (tkId $1) (tkPos $1) }
      | 'int'                                            { Int (tkInt $1) (tkPos $1) }
+     | 'str'                                            { Str (tkString $1) (tkPos $1) }
+     | 'true'                                           { CTrue (tkPos $1) }
+     | 'false'                                          { CFalse (tkPos $1) }
+     | '(' expr ')'                                     { $2 }
 
+letDecls : letDecl                                      { [$1] }
+         | letDecls ',' letDecl                         { $3 : $1 }
 
+letDecl : 'id' ':' 'type'                               { Decl (tkId $1) (tkType $3) Nothing (tkPos $1) }
+        | 'id' ':' 'type' '<-' expr                     { Decl (tkId $1) (tkType $3) (Just $5) (tkPos $1) }
+
+caseBranches : caseBranch                               { [$1] }
+             | caseBranches ';' caseBranch              { $3 : $1 }
+
+caseBranch : 'id' ':' 'type' '=>' expr                  { CaseBranch (tkId $1) (tkType $3) $5 (tkPos $1) }
 
 {
 
