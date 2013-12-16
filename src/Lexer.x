@@ -2,8 +2,11 @@
 module Lexer (
                Token(..)
              , TokenClass(..)
-             , tkPos
              , alexScanTokens
+             , tkInt
+             , tkString
+             , tkId
+             , tkType
              )
 where
 
@@ -90,20 +93,17 @@ while    { mkTk TWhile }
 mkTk :: TokenClass -> AlexPosn -> B.ByteString -> Token
 mkTk cls pos _ = MkToken pos cls
 
-tkPos :: Token -> AlexPosn
-tkPos (MkToken p _) = p
-
-data Token = MkToken AlexPosn TokenClass
+data Token = MkToken { tkPos :: AlexPosn, tkClass :: TokenClass }
     deriving (Eq)
 
 instance Show Token where
     show (MkToken (AlexPn _ l c) cl) =
         concat ["<", show cl, " ", show (l, c), ">"]
 
-data TokenClass = TInt Int
-                | TString B.ByteString
-                | TTypeId B.ByteString
-                | TObjId B.ByteString
+data TokenClass = TInt { tcInt :: Int }
+                | TString { tcString :: B.ByteString }
+                | TTypeId { tcTypeId :: B.ByteString }
+                | TObjId { tcObjId :: B.ByteString }
                 | TClass
                 | TElse
                 | TFalse
@@ -151,4 +151,13 @@ mkString :: AlexPosn -> B.ByteString -> Token
 mkString pos s =
     let s' = B.init (B.tail s) in
     mkTk (TString s') pos s'
+
+tkInt :: Token -> Int
+tkInt = tcInt . tkClass
+
+tkString, tkId, tkType :: Token -> B.ByteString
+tkString = tcString . tkClass
+tkId = tcObjId . tkClass
+tkType = tcTypeId . tkClass
+
 }
