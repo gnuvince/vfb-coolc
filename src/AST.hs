@@ -67,9 +67,6 @@ data Expr a = Assign { assignName :: Id
                     , whileAttr :: a
                     }
             | ExprList { listExprs :: [Expr a] , listAttr :: a }
-
-            -- Should the Let constructor reflect that there should
-            -- at least be one Decl?
             | Let { letDecls :: [Decl a]
                   , letExpr :: Expr a
                   , letAttr :: a
