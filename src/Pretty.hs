@@ -95,7 +95,7 @@ instance Pretty (Param a) where
 
 instance Pretty (Feature a) where
     pretty (VarDef name typ expr _) =
-        P.hcat [bytestr name, P.char ':', bytestr typ, init]
+        P.hsep [bytestr name, P.char ':', bytestr typ, init]
          where init = case expr of
                         Nothing -> P.empty
                         Just e  -> P.text "<-" P.<+> pretty e

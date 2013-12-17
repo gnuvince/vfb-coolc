@@ -135,8 +135,8 @@ letDecls : letDecl                                      { [$1] }
 letDecl : 'id' ':' 'type'                               { Decl (tkId $1) (tkType $3) Nothing (tkPos $1) }
         | 'id' ':' 'type' '<-' expr                     { Decl (tkId $1) (tkType $3) (Just $5) (tkPos $1) }
 
-caseBranches : caseBranch                               { [$1] }
-             | caseBranches ';' caseBranch              { $3 : $1 }
+caseBranches : caseBranch ';'                           { [$1] }
+             | caseBranch ';' caseBranches              { $1 : $3 }
 
 caseBranch : 'id' ':' 'type' '=>' expr                  { CaseBranch (tkId $1) (tkType $3) $5 (tkPos $1) }
 

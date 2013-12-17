@@ -18,7 +18,7 @@ import qualified Data.ByteString.Lazy.Char8 as B
 
 $digit = 0-9
 $alpha = [a-zA-Z_]
-$alphanum = $alpha # $digit
+$alphanum = [$alpha  $digit]
 $lower = [a-z_]
 $upper = A-Z
 $white = [\ \t\r\n\v\f]
