@@ -7,7 +7,7 @@ class Main inherits IO {
    fi
   };
 
-  main() {
-   putInt(fib(10))
+  main(): IO {
+   out_int(fib(10))
   };
 };

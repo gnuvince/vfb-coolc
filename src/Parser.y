@@ -82,8 +82,7 @@ class   : 'class' 'type' '{' features '}'               { Class (tkType $2) Noth
 features : {- empty -}                                  { [] }
          | feature ';' features                         { $1 : $3 }
 
-feature : 'id' '(' formals ')' ':' 'type' '{' expr '}' { MethodDef (tkId $1) $3 (Just $ tkType $6) $8 (tkPos $1) }
-        | 'id' '(' formals ')' '{' expr '}'            { MethodDef (tkId $1) $3 Nothing $6 (tkPos $1) }
+feature : 'id' '(' formals ')' ':' 'type' '{' expr '}' { MethodDef (tkId $1) $3 (tkType $6) $8 (tkPos $1) }
         | 'id' ':' 'type'                              { VarDef (tkId $1) (tkType $3) Nothing (tkPos $1) }
         | 'id' ':' 'type' '<-' expr                    { VarDef (tkId $1) (tkType $3) (Just $5) (tkPos $1) }
 
