@@ -1,4 +1,6 @@
-class Main inherits IO {
+class Main {
+  io: IO <- new IO;
+
   fib(n: Int): Int {
    if n < 2 then
      n
@@ -7,7 +9,8 @@ class Main inherits IO {
    fi
   };
 
-  main(): IO {
-   out_int(fib(10))
-  };
+  main(): Int {{
+   io.out_int(fib(10));
+   0;
+  }};
 };
