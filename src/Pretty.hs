@@ -24,16 +24,16 @@ bytestr = P.text . B.unpack
 
 instance Pretty (Expr a) where
     pretty (Assign x expr _) = bytestr x P.<+> "<-" P.<+> pretty expr
-    pretty (MethodCall recv Nothing method params _) =
-        P.cat [pretty recv, P.char '.', bytestr method,
-               P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
-    pretty (MethodCall recv (Just ty) method params _) =
-        P.cat [pretty recv, P.char '@', bytestr ty,
-               P.char '.', bytestr method,
-               P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
+    pretty (MethodCall recv cls method params _) =
+        P.hcat [pretty recv, clsTarg,
+                P.char '.', bytestr method,
+                P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
+            where clsTarg = case cls of
+                              Nothing -> P.empty
+                              Just t  -> P.char '@' P.<> bytestr t
     pretty (FunCall fun params _) =
-        P.cat [bytestr fun,
-               P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
+        P.hcat [bytestr fun,
+                P.parens (P.cat (P.punctuate (P.text ", ") (map pretty params)))]
     pretty (IfThenElse expr thenBranch elseBranch _) =
         P.vcat [P.hsep [P.text "if", pretty expr, P.text "then"],
                 P.nest indent (pretty thenBranch),
@@ -50,14 +50,14 @@ instance Pretty (Expr a) where
                 P.text "}"]
     pretty (Let decls expr _) =
         P.vcat [P.text "let",
-                P.nest indent (P.vcat [pretty d P.<> P.char ';' | d <- decls]),
+                P.nest indent (P.vcat (P.punctuate (P.char ',') (map pretty decls))),
                 P.text "in",
                 P.nest indent (pretty expr)]
     pretty (Case expr branches _) =
         P.vcat [P.hsep [P.text "case", pretty expr, P.text "of"],
                 P.nest indent (P.vcat [pretty b P.<> P.char ';' | b <- branches]),
                 P.text "esac"]
-    pretty (New ty _)  = P.text "new" P.<+> bytestr ty
+    pretty (New ty _)  = P.parens (P.text "new" P.<+> bytestr ty)
     pretty (IsVoid expr _)  = P.text "isvoid" P.<+> P.parens (pretty expr)
     pretty (Add l r _) = binOp "+" l r
     pretty (Sub l r _) = binOp "-" l r

@@ -130,7 +130,7 @@ expr : 'id' '<-' expr                                   { Assign (tkId $1) $3 (t
      | '(' expr ')'                                     { $2 }
 
 letDecls : letDecl                                      { [$1] }
-         | letDecls ',' letDecl                         { $3 : $1 }
+         | letDecl ',' letDecls                         { $1 : $3 }
 
 letDecl : 'id' ':' 'type'                               { Decl (tkId $1) (tkType $3) Nothing (tkPos $1) }
         | 'id' ':' 'type' '<-' expr                     { Decl (tkId $1) (tkType $3) (Just $5) (tkPos $1) }
