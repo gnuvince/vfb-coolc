@@ -1,29 +1,64 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+{-|
+Abstract syntax tree structure for COOL.  Every node type has a type
+parameter @a@ that (I hope) will contain extra attributes such as
+position information, type information, parent information, etc.
+-}
 module AST where
 
 import qualified Data.ByteString.Lazy.Char8 as B
-
-{-
-  Abstract syntax tree structure for our language.  Every type has a
-  type parameter @a@ that (I hope) will contain extra attributes such as
-  position information, type information, parent information, etc.
--}
 
 -- Should this be a distinct type?
 type Id   = B.ByteString
 type Type = B.ByteString
 
+-- |Node type for a Cool program. It contains a list of classes.
 data Program a = Program {
       programClasses :: [Class a]
     , programAttr :: a
     } deriving (Show)
 
+{-|
+Node type for a Cool class. A class has a name, an optional
+parent class (if Nothing, then we use it is a child of the
+Object class), and a list of features, which are attribute
+declarations and method definitions.
+-}
 data Class a = Class {
       className :: Type
-    , classInheritedClass :: Maybe Type
+    , classMaybeInheritedClass :: Maybe Type
     , classFeatures :: [Feature a]
     , classAttr :: a
     } deriving (Show)
 
+classInheritedClass :: Class a -> Type
+classInheritedClass cl =
+    case classMaybeInheritedClass cl of
+      Nothing -> "Object"
+      Just t  -> t
+
+{-|
+A feature is either a method definition or an attribute definition.
+
+A method definition has:
+
+* a name;
+
+* a list of 0 or more parameters;
+
+* a return type;
+
+* an expression.
+
+An attribute definition has:
+
+* a name;
+
+* a type;
+
+* an optional initialization expression.
+-}
 data Feature a  = MethodDef { methodName :: Id
                             , methodParams :: [Param a]
                             , methodType :: Type
@@ -37,12 +72,16 @@ data Feature a  = MethodDef { methodName :: Id
                          }
                  deriving (Show)
 
+
+-- |A parameter is declared in a method definition.
 data Param a = Param {
       paramName :: Id
     , paramType :: Type
     , paramAttr :: a
     } deriving (Show)
 
+
+-- |The expression nodes of Cool.
 data Expr a = Assign { assignName :: Id
                      , assignExpr :: Expr a
                      , assignAttr :: a
@@ -96,7 +135,7 @@ data Expr a = Assign { assignName :: Id
               deriving (Show)
 
 
-
+-- |A declaration node used in a Let declaration.
 data Decl a = Decl {
       declName :: Id
     , declType :: Type
@@ -104,6 +143,7 @@ data Decl a = Decl {
     , declAttr :: a
     } deriving (Show)
 
+-- |A dynamic type dispatch branch used in a Case declaration.
 data CaseBranch a = CaseBranch {
       branchName :: Id
     , branchType :: Type
