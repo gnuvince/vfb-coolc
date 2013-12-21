@@ -2,3 +2,4 @@ _build
 dist
 cabal-dev
 *.info
+*.pdf
