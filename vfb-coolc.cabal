@@ -26,3 +26,16 @@ executable vfb-coolc
   hs-source-dirs:      src
   build-tools:         alex, happy
   ghc-options: -O2
+
+
+test-suite vfb-coolc-tests
+  main-is: MainTest.hs
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests, src
+  build-depends: base,
+                 array,
+                 containers,
+                 HUnit,
+                 test-framework,
+                 test-framework-hunit,
+                 bytestring
