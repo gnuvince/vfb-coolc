@@ -32,7 +32,7 @@ validateUserClasses cls =
     nub clsNames == clsNames &&
     all (`S.notMember` builtInClasses) clsNames &&
     all (`S.notMember` finalClasses) clsParents &&
-    D.isAcyclic "Object" clsDigraph
+    and [D.isAcyclic cn clsDigraph | cn <- clsNames]
     where clsNames = map className cls
           clsParents = map classInheritedClass cls
           clsDigraph = mkClassDigraph cls
