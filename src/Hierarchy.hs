@@ -1,8 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hierarchy ( validateUserClasses
-                 , mkClassDigraph
-                 , initialClassGraph
                  )
 where
 
@@ -26,6 +24,8 @@ finalClasses = S.fromList ["Bool", "Int", "String"]
   * None of the built-in classes (Object, Bool, Int, String, IO) are redefined;
 
   * None of the final built-in classes (Bool, Int, String) are redefined.
+
+  * No inheritance cycle exits
  -}
 validateUserClasses :: [Class a] -> Bool
 validateUserClasses cls =

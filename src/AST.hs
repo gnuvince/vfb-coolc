@@ -9,7 +9,7 @@ module AST where
 
 import qualified Data.ByteString.Lazy.Char8 as B
 
--- Should this be a distinct type?
+-- |For now, ids and type ids are simply bytestrings.
 type Id   = B.ByteString
 type Type = B.ByteString
 
@@ -152,6 +152,8 @@ data CaseBranch a = CaseBranch {
     } deriving (Show)
 
 
+-- |A class that allows a single method to access the attributes of
+-- all kinds of AST nodes.
 class Attributable n where
     astAttr :: n a -> a
 
