@@ -12,7 +12,4 @@ getAST src = case scan src of
 main :: IO ()
 main = do
   src <- getContents
-  -- let ast = getAST src
-  -- print (pretty ast)
-  print (getTokens src)
   print (pretty $ getAST src)

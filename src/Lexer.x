@@ -32,8 +32,8 @@ $white = [\ \t\r\n\v\f]
 @integer = 0 | [1-9][0-9]*
 @typeid = $upper $alphanum*
 @objid  = $lower $alphanum*
---@chars = [^ \" \0 \\] | \\[^ \0] | \\\n
-@chars = [^\"] | \\\n
+-- @chars = [^ \" \0 \\] | \\[^ \0] | \\\n
+@chars = [^\"] | \\\n | \\\"
 @any = . | \n
 
 tokens :-
@@ -46,25 +46,25 @@ tokens :-
 <comment> @any   { skip }
 
 -- Keywords
-<0> case     { mkTk TCase }
-<0> class    { mkTk TClass }
-<0> else     { mkTk TElse }
-<0> esac     { mkTk TEsac }
-<0> false    { mkTk TFalse }
-<0> fi       { mkTk TFi }
-<0> if       { mkTk TIf }
-<0> in       { mkTk TIn }
-<0> inherits { mkTk TInherits }
-<0> isvoid   { mkTk TIsvoid }
-<0> let      { mkTk TLet }
-<0> loop     { mkTk TLoop }
-<0> new      { mkTk TNew }
-<0> not      { mkTk TNot }
-<0> of       { mkTk TOf }
-<0> pool     { mkTk TPool }
-<0> then     { mkTk TThen }
-<0> true     { mkTk TTrue }
-<0> while    { mkTk TWhile }
+<0> [Cc][Aa][Ss][Ee]                 { mkTk TCase }
+<0> [Cc][Ll][Aa][Ss][Ss]             { mkTk TClass }
+<0> [Ee][Ll][Ss][Ee]                 { mkTk TElse }
+<0> [Ee][Ss][Aa][Cc]                 { mkTk TEsac }
+<0> [Ff][Aa][Ll][Ss][Ee]             { mkTk TFalse }
+<0> [Ff][Ii]                         { mkTk TFi }
+<0> [Ii][Ff]                         { mkTk TIf }
+<0> [Ii][Nn]                         { mkTk TIn }
+<0> [Ii][Nn][Hh][Ee][Rr][Ii][Tt][Ss] { mkTk TInherits }
+<0> [Ii][Ss][Vv][Oo][Ii][Dd]         { mkTk TIsvoid }
+<0> [Ll][Ee][Tt]                     { mkTk TLet }
+<0> [Ll][Oo][Oo][Pp]                 { mkTk TLoop }
+<0> [Nn][Ee][Ww]                     { mkTk TNew }
+<0> [Nn][Oo][Tt]                     { mkTk TNot }
+<0> [Oo][Ff]                         { mkTk TOf }
+<0> [Pp][Oo][Oo][Ll]                 { mkTk TPool }
+<0> [Tt][Hh][Ee][Nn]                 { mkTk TThen }
+<0> [Tt][Rr][Uu][Ee]                 { mkTk TTrue }
+<0> [Ww][Hh][Ii][Ll][Ee]             { mkTk TWhile }
 
 
 -- Literals
