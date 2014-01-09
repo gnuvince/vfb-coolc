@@ -56,7 +56,7 @@ import AST
     'str'      { MkToken _ (TString _) }
     'type'     { MkToken _ (TTypeId _) }
     'id'       { MkToken _ (TObjId _) }
-
+    'eof'      { MkToken _ TEof }
 
 %right    '<-'
 %left     'not'
@@ -70,27 +70,27 @@ import AST
 
 %%
 
-program : classes                                       { Program $1 (astAttr (head $1)) }
+program : classes 'eof'                                 { Program $1 (astAttr (head $1)) }
 
 classes : class ';'                                     { [$1] }
         | class ';' classes                             { $1 : $3 }
 
-class   : 'class' 'type' '{' features '}'               { Class (tkType $2) Nothing $4 (tkPos $1) }
+class   : 'class' 'type' '{' features '}'               { Class (tkTypeId $2) Nothing $4 (tkPos $1) }
         | 'class' 'type' 'inherits' 'type' '{' features '}'
-                                                        { Class (tkType $2) (Just (tkType $4)) $6 (tkPos $1) }
+                                                        { Class (tkTypeId $2) (Just (tkTypeId $4)) $6 (tkPos $1) }
 
 features : {- empty -}                                  { [] }
          | feature ';' features                         { $1 : $3 }
 
-feature : 'id' '(' formals ')' ':' 'type' '{' expr '}' { MethodDef (tkId $1) $3 (tkType $6) $8 (tkPos $1) }
-        | 'id' ':' 'type'                              { VarDef (tkId $1) (tkType $3) Nothing (tkPos $1) }
-        | 'id' ':' 'type' '<-' expr                    { VarDef (tkId $1) (tkType $3) (Just $5) (tkPos $1) }
+feature : 'id' '(' formals ')' ':' 'type' '{' expr '}' { MethodDef (tkObjId $1) $3 (tkTypeId $6) $8 (tkPos $1) }
+        | 'id' ':' 'type'                              { VarDef (tkObjId $1) (tkTypeId $3) Nothing (tkPos $1) }
+        | 'id' ':' 'type' '<-' expr                    { VarDef (tkObjId $1) (tkTypeId $3) (Just $5) (tkPos $1) }
 
 formals : {- empty -}                                   { [] }
         | formal                                        { [$1] }
         | formal ',' formals                            { $1 : $3 }
 
-formal : 'id' ':' 'type'                                { Param (tkId $1) (tkType $3) (tkPos $1) }
+formal : 'id' ':' 'type'                                { Param (tkObjId $1) (tkTypeId $3) (tkPos $1) }
 
 exprCommaStar : {- empty -}                             { [] }
               | expr                                    { [$1] }
@@ -100,16 +100,16 @@ exprSemiPlus : expr ';'                                 { [$1] }
              | expr ';' exprSemiPlus                    { $1 : $3 }
 
 
-expr : 'id' '<-' expr                                   { Assign (tkId $1) $3 (tkPos $1) }
-     | expr '.' 'id' '(' exprCommaStar ')'              { MethodCall $1 Nothing (tkId $3) $5 (astAttr $1) }
-     | expr '@' 'type' '.' 'id' '(' exprCommaStar ')'   { MethodCall $1 (Just (tkType $3)) (tkId $5) $7 (astAttr $1) }
-     | 'id' '(' exprCommaStar ')'                       { FunCall (tkId $1) $3 (tkPos $1) }
+expr : 'id' '<-' expr                                   { Assign (tkObjId $1) $3 (tkPos $1) }
+     | expr '.' 'id' '(' exprCommaStar ')'              { MethodCall $1 Nothing (tkObjId $3) $5 (astAttr $1) }
+     | expr '@' 'type' '.' 'id' '(' exprCommaStar ')'   { MethodCall $1 (Just (tkTypeId $3)) (tkObjId $5) $7 (astAttr $1) }
+     | 'id' '(' exprCommaStar ')'                       { FunCall (tkObjId $1) $3 (tkPos $1) }
      | 'if' expr 'then' expr 'else' expr 'fi'           { IfThenElse $2 $4 $6 (tkPos $1) }
      | 'while' expr 'loop' expr 'pool'                  { While $2 $4 (tkPos $1) }
      | 'let' letDecls 'in' expr                         { Let $2 $4 (tkPos $1) }
      | 'case' expr 'of' caseBranches 'esac'             { Case $2 $4 (tkPos $1) }
      | '{' exprSemiPlus '}'                             { ExprList $2 (tkPos $1) }
-     | 'new' 'type'                                     { New (tkType $2) (tkPos $1) }
+     | 'new' 'type'                                     { New (tkTypeId $2) (tkPos $1) }
      | 'isvoid' expr                                    { IsVoid $2 (tkPos $1) }
      | expr '+' expr                                    { Add $1 $3 (astAttr $1) }
      | expr '-' expr                                    { Sub $1 $3 (astAttr $1) }
@@ -122,7 +122,7 @@ expr : 'id' '<-' expr                                   { Assign (tkId $1) $3 (t
      | expr '>'  expr                                   { Gt $1 $3 (astAttr $1) }
      | expr '>=' expr                                   { Ge $1 $3 (astAttr $1) }
      | 'not' expr                                       { Not $2 (tkPos $1) }
-     | 'id'                                             { Id (tkId $1) (tkPos $1) }
+     | 'id'                                             { Id (tkObjId $1) (tkPos $1) }
      | 'int'                                            { Int (tkInt $1) (tkPos $1) }
      | 'str'                                            { Str (tkString $1) (tkPos $1) }
      | 'true'                                           { CTrue (tkPos $1) }
@@ -132,13 +132,13 @@ expr : 'id' '<-' expr                                   { Assign (tkId $1) $3 (t
 letDecls : letDecl                                      { [$1] }
          | letDecl ',' letDecls                         { $1 : $3 }
 
-letDecl : 'id' ':' 'type'                               { Decl (tkId $1) (tkType $3) Nothing (tkPos $1) }
-        | 'id' ':' 'type' '<-' expr                     { Decl (tkId $1) (tkType $3) (Just $5) (tkPos $1) }
+letDecl : 'id' ':' 'type'                               { Decl (tkObjId $1) (tkTypeId $3) Nothing (tkPos $1) }
+        | 'id' ':' 'type' '<-' expr                     { Decl (tkObjId $1) (tkTypeId $3) (Just $5) (tkPos $1) }
 
 caseBranches : caseBranch ';'                           { [$1] }
              | caseBranch ';' caseBranches              { $1 : $3 }
 
-caseBranch : 'id' ':' 'type' '=>' expr                  { CaseBranch (tkId $1) (tkType $3) $5 (tkPos $1) }
+caseBranch : 'id' ':' 'type' '=>' expr                  { CaseBranch (tkObjId $1) (tkTypeId $3) $5 (tkPos $1) }
 
 {
 

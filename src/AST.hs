@@ -7,11 +7,9 @@ position information, type information, parent information, etc.
 -}
 module AST where
 
-import qualified Data.ByteString.Lazy.Char8 as B
-
 -- |For now, ids and type ids are simply bytestrings.
-type Id   = B.ByteString
-type Type = B.ByteString
+type Id   = String
+type Type = String
 
 -- |Node type for a Cool program. It contains a list of classes.
 data Program a = Program {
@@ -129,7 +127,7 @@ data Expr a = Assign { assignName :: Id
             | Not { notExpr :: Expr a, notAttr :: a }
             | Id { idName :: Id, idAttr :: a }
             | Int { intValue :: Int, intAttr :: a }
-            | Str { strValue :: B.ByteString, strAttr :: a }
+            | Str { strValue :: String, strAttr :: a }
             | CTrue { ctrueAttr :: a }
             | CFalse { cfalseAttr :: a }
               deriving (Show)

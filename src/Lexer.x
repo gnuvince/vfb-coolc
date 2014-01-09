@@ -2,18 +2,24 @@
 module Lexer (
                Token(..)
              , TokenClass(..)
-             , alexScanTokens
              , tkInt
              , tkString
-             , tkId
-             , tkType
+             , tkObjId
+             , tkTypeId
+             , isEof
+             , alexMonadScan
+             , runAlex
+             , scan
+             , getTokens
              )
 where
 
-import qualified Data.ByteString.Lazy.Char8 as B
+import Control.Monad (liftM)
+import Debug.Trace
+
 }
 
-%wrapper "posn-bytestring"
+%wrapper "monadUserState"
 
 
 $digit = 0-9
@@ -28,70 +34,93 @@ $white = [\ \t\r\n\v\f]
 @objid  = $lower $alphanum*
 --@chars = [^ \" \0 \\] | \\[^ \0] | \\\n
 @chars = [^\"] | \\\n
+@any = . | \n
 
 tokens :-
 
-$white+ ;
-"--".*\n  ;
-"(*" .* "*)" ;
+<0> $white+      { skip }
+<0> "--".*\n     { skip }
+<0>       "(*"   { increaseDepth `andBegin2` comment }
+<comment> "(*"   { increaseDepth }
+<comment> "*)"   { decreaseDepth }
+<comment> @any   { skip }
 
 -- Keywords
-case     { mkTk TCase }
-class    { mkTk TClass }
-else     { mkTk TElse }
-esac     { mkTk TEsac }
-false    { mkTk TFalse }
-fi       { mkTk TFi }
-if       { mkTk TIf }
-in       { mkTk TIn }
-inherits { mkTk TInherits }
-isvoid   { mkTk TIsvoid }
-let      { mkTk TLet }
-loop     { mkTk TLoop }
-new      { mkTk TNew }
-not      { mkTk TNot }
-of       { mkTk TOf }
-pool     { mkTk TPool }
-then     { mkTk TThen }
-true     { mkTk TTrue }
-while    { mkTk TWhile }
+<0> case     { mkTk TCase }
+<0> class    { mkTk TClass }
+<0> else     { mkTk TElse }
+<0> esac     { mkTk TEsac }
+<0> false    { mkTk TFalse }
+<0> fi       { mkTk TFi }
+<0> if       { mkTk TIf }
+<0> in       { mkTk TIn }
+<0> inherits { mkTk TInherits }
+<0> isvoid   { mkTk TIsvoid }
+<0> let      { mkTk TLet }
+<0> loop     { mkTk TLoop }
+<0> new      { mkTk TNew }
+<0> not      { mkTk TNot }
+<0> of       { mkTk TOf }
+<0> pool     { mkTk TPool }
+<0> then     { mkTk TThen }
+<0> true     { mkTk TTrue }
+<0> while    { mkTk TWhile }
 
 
 -- Literals
-@integer        { \pos s -> mkTk (TInt (read $ B.unpack s)) pos s }
-\" @chars* \"   { \pos s -> mkString pos s }
+<0> @integer        { \inp@(_, _, s) i -> mkTk (TInt (read $ take i s)) inp i }
+<0> \"              { initString `andBegin2` string }
+<string> \"         { finishString `andBegin2` 0 }
+<string> @chars     { addChar }
 
-@typeid  { \pos s -> mkTk (TTypeId s) pos s }
-@objid   { \pos s -> mkTk (TObjId s) pos s }
+<0> @typeid  { \inp@(_, _, s) i -> mkTk (TTypeId $ take i s) inp i }
+<0> @objid   { \inp@(_, _, s) i -> mkTk (TObjId $ take i s) inp i }
 
 -- Symbols
-":"  { mkTk TColon }
-";"  { mkTk TSemiColon }
-"@"  { mkTk TAt }
-"."  { mkTk TDot }
-","  { mkTk TComma }
-"<-" { mkTk TAssign }
-"=>" { mkTk TFatArrow }
-"+"  { mkTk TPlus }
-"-"  { mkTk TMinus }
-"*"  { mkTk TStar }
-"/"  { mkTk TSlash }
-"~"  { mkTk TTilde }
-"<"  { mkTk TLt }
-"<=" { mkTk TLe }
-">"  { mkTk TGt }
-">=" { mkTk TGe }
-"="  { mkTk TEq }
-"{"  { mkTk TLBrace }
-"}"  { mkTk TRBrace }
-"("  { mkTk TLParen }
-")"  { mkTk TRParen }
+<0> ":"  { mkTk TColon }
+<0> ";"  { mkTk TSemiColon }
+<0> "@"  { mkTk TAt }
+<0> "."  { mkTk TDot }
+<0> ","  { mkTk TComma }
+<0> "<-" { mkTk TAssign }
+<0> "=>" { mkTk TFatArrow }
+<0> "+"  { mkTk TPlus }
+<0> "-"  { mkTk TMinus }
+<0> "*"  { mkTk TStar }
+<0> "/"  { mkTk TSlash }
+<0> "~"  { mkTk TTilde }
+<0> "<"  { mkTk TLt }
+<0> "<=" { mkTk TLe }
+<0> ">"  { mkTk TGt }
+<0> ">=" { mkTk TGe }
+<0> "="  { mkTk TEq }
+<0> "{"  { mkTk TLBrace }
+<0> "}"  { mkTk TRBrace }
+<0> "("  { mkTk TLParen }
+<0> ")"  { mkTk TRParen }
 
 
 
 {
-mkTk :: TokenClass -> AlexPosn -> B.ByteString -> Token
-mkTk cls pos _ = MkToken pos cls
+--mkTk :: TokenClass -> AlexInput -> Int -> Alex Token
+mkTk cls (pos, _, _) _ = return $ MkToken pos cls
+
+--mkString :: A -> Int -> Alex Token
+mkString inp s = undefined
+
+data AlexUserState = AlexUserState {
+                     commentDepth :: Int
+                   , stringValue :: String
+                   }
+
+alexInitUserState :: AlexUserState
+alexInitUserState = AlexUserState {
+                    commentDepth = 0
+                  , stringValue = ""
+                  }
+
+alexEOF :: Alex Token
+alexEOF = return $ MkToken (AlexPn 0 0 0) TEof
 
 data Token = MkToken { tkPos :: AlexPosn, tkClass :: TokenClass }
     deriving (Eq)
@@ -101,9 +130,9 @@ instance Show Token where
         concat ["<", show cl, " ", show (l, c), ">"]
 
 data TokenClass = TInt { tcInt :: Int }
-                | TString { tcString :: B.ByteString }
-                | TTypeId { tcTypeId :: B.ByteString }
-                | TObjId { tcObjId :: B.ByteString }
+                | TString { tcString :: String }
+                | TTypeId { tcTypeId :: String }
+                | TObjId { tcObjId :: String }
                 | TClass
                 | TElse
                 | TFalse
@@ -144,20 +173,83 @@ data TokenClass = TInt { tcInt :: Int }
                 | TRBrace
                 | TLParen
                 | TRParen
+                | TEof
            deriving (Show, Eq)
 
-
-mkString :: AlexPosn -> B.ByteString -> Token
-mkString pos s =
-    let s' = B.init (B.tail s) in
-    mkTk (TString s') pos s'
 
 tkInt :: Token -> Int
 tkInt = tcInt . tkClass
 
-tkString, tkId, tkType :: Token -> B.ByteString
+tkString, tkObjId, tkTypeId :: Token -> String
 tkString = tcString . tkClass
-tkId = tcObjId . tkClass
-tkType = tcTypeId . tkClass
+tkObjId = tcObjId . tkClass
+tkTypeId = tcTypeId . tkClass
+
+isEof :: Token -> Bool
+isEof (MkToken _ TEof) = True
+isEof _                = False
+
+get :: Alex AlexUserState
+get = Alex $ \s   -> Right (s, alex_ust s)
+
+put :: AlexUserState -> Alex ()
+put u = Alex $ \s -> Right (s{alex_ust=u}, ())
+
+modify :: (AlexUserState -> AlexUserState) -> Alex ()
+modify f = do ust <- get
+              put (f ust)
+
+getCommentDepth = liftM commentDepth get
+getStringValue  = liftM stringValue get
+
+incr, decr :: AlexUserState -> AlexUserState
+incr state = state { commentDepth = commentDepth state + 1 }
+decr state = state { commentDepth = commentDepth state - 1 }
+
+increaseDepth inp len = do
+  modify incr
+  skip inp len
+
+decreaseDepth inp len = do
+  modify decr
+  depth <- getCommentDepth
+  if depth == 0
+     then begin 0 inp len
+     else skip inp len
+
+initString inp len = do
+  modify (\state -> state { stringValue = "" })
+  skip inp len
+
+addChar inp@(_, _, s) len = do
+  modify (\state -> state { stringValue = take len s ++ stringValue state })
+  skip inp len
+
+finishString inp@(pos, _, _) len = do
+  s <- get
+  return $ MkToken pos (TString (reverse $ stringValue s))
+
+
+
+scan :: String -> Either String [Token]
+scan str = runAlex str $ do
+  let loop = do tok <- alexMonadScan
+                if isEof tok
+                    then do code <- alexGetStartCode
+                            case code of
+                                 0 -> return [tok]
+                                 x | x == comment -> error "unterminated comment"
+                                   | x == string  -> error "unterminated string"
+                    else do toks <- loop
+                            return (tok:toks)
+  loop
+
+getTokens :: String -> [Token]
+getTokens src = case scan src of
+                  Left err -> error err
+                  Right toks -> toks
+
+
+(act `andBegin2` code) input len = do alexSetStartCode code; act input len
 
 }

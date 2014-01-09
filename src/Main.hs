@@ -1,15 +1,18 @@
 module Main where
 
-import qualified Data.ByteString.Lazy.Char8 as B
-
 import Lexer
 import Parser
 import AST
 import Pretty
 
+getAST src = case scan src of
+                  Left err -> error err
+                  Right toks -> parseCool toks
+
 main :: IO ()
 main = do
-  src <- B.getContents
-  let tokens = alexScanTokens src
-  let ast = parseCool tokens
-  print (pretty ast)
+  src <- getContents
+  -- let ast = getAST src
+  -- print (pretty ast)
+  print (getTokens src)
+  print (pretty $ getAST src)
